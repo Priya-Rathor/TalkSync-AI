@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "TalkSync",
+  "version": "1.0.0",
+  "description": "Real-time AI translation overlay for Google Meet",
+
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "tabs"
+  ],
+
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "https://translate.googleapis.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "http://localhost/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "TalkSync Translator",
+    "default_icon": {
+      "16":  "icons/icon16.png",
+      "32":  "icons/icon32.png",
+      "48":  "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "icons": {
+    "16":  "icons/icon16.png",
+    "32":  "icons/icon32.png",
+    "48":  "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["content.js"],
+      "css": ["overlay.css"],
+      "run_at": "document_end"
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["overlay.css", "icons/*.png"],
+      "matches": ["https://meet.google.com/*"]
+    }
+  ]
+}

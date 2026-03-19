@@ -1,0 +1,2 @@
+/* TalkSync overlay base — actual styles injected inline by content.js to avoid Meet CSS conflicts */
+#ts-root { all: initial; pointer-events: auto; }

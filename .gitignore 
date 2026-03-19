@@ -1,0 +1,93 @@
+# ══════════════════════════════════════
+#  TalkSync — .gitignore
+# ══════════════════════════════════════
+
+# ── Environment Variables ────────────
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+*.env
+backend/.env
+**/.env
+
+# ── Python Cache ─────────────────────
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+.Python
+
+# ── Virtual Environments ─────────────
+venv/
+env/
+ENV/
+.venv/
+backend/venv/
+
+# ── Python Package Artifacts ─────────
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+sdist/
+wheels/
+
+# ── IDE & Editors ────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── macOS ────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# ── Windows ──────────────────────────
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# ── Logs ─────────────────────────────
+*.log
+logs/
+log/
+
+# ── Node ─────────────────────────────
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# ── Chrome Extension Build ───────────
+extension/build/
+extension/dist/
+*.crx
+*.pem
+*.zip
+
+# ── Database ─────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Testing ──────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# ── Secrets ──────────────────────────
+secrets.json
+credentials.json
+service-account.json
+*.key
+*.cert
+*.env

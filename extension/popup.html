@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TalkSync</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  width:320px;min-height:100px;
+  background:#07090f;color:#e8ecf5;
+  font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;
+  overflow-x:hidden;
+}
+
+/* ── Header ── */
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px;background:#0d1117;
+  border-bottom:1px solid #1e2a3d;
+}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-ico{
+  width:28px;height:28px;border-radius:8px;
+  background:linear-gradient(135deg,#00e5a0,#00aaff);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;
+}
+.logo-name{font-weight:800;font-size:15px;color:#00e5a0}
+.status-pill{
+  display:flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;
+  background:#1a2235;border:1px solid #1e2a3d;color:#3d4d66;
+  transition:all .3s;
+}
+.status-pill.live{background:rgba(240,79,79,.12);border-color:rgba(240,79,79,.3);color:#f04f4f}
+.status-pill.live .sdot{animation:blink 1s infinite}
+.sdot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── Warning (not on Meet) ── */
+.warn-box{
+  padding:20px 16px;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+}
+.warn-icon{font-size:34px;opacity:.4}
+.warn-text{color:#7e8ba8;font-size:12px;line-height:1.6}
+.warn-text a{color:#00e5a0;text-decoration:none;font-weight:600}
+.warn-text a:hover{text-decoration:underline}
+
+/* ── Main panel ── */
+.main{padding:14px;display:flex;flex-direction:column;gap:12px}
+
+/* ── Big button ── */
+.big-btn{
+  width:100%;padding:11px 16px;border-radius:10px;border:none;
+  font-size:13px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:all .15s;font-family:inherit;
+}
+.big-btn.start{background:#00e5a0;color:#000}
+.big-btn.start:hover{background:#14f5b0;box-shadow:0 4px 16px rgba(0,229,160,.3);transform:translateY(-1px)}
+.big-btn.stop{background:#f04f4f;color:#fff}
+.big-btn.stop:hover{filter:brightness(1.1)}
+
+/* ── Section label ── */
+.sec{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#3d4d66;margin-bottom:6px}
+
+/* ── API key box ── */
+.key-box{
+  background:#0d1117;border:1px solid #1e2a3d;
+  border-radius:10px;padding:11px 12px;
+  display:flex;flex-direction:column;gap:8px;
+}
+.key-row{display:flex;align-items:center;gap:6px}
+.key-row input{
+  flex:1;background:#131a26;border:1px solid #1e2a3d;
+  border-radius:7px;padding:7px 10px;color:#e8ecf5;
+  font-family:monospace;font-size:11px;outline:none;
+  transition:border-color .15s;
+}
+.key-row input:focus{border-color:#00e5a0}
+.key-row input.valid{border-color:#00e5a0}
+.key-row input.bad{border-color:#f04f4f}
+.eye-btn{
+  background:#131a26;border:1px solid #1e2a3d;
+  border-radius:6px;padding:5px 8px;
+  cursor:pointer;font-size:12px;color:#7e8ba8;
+  transition:all .14s;flex-shrink:0;
+}
+.eye-btn:hover{background:#1e2a3d;color:#e8ecf5}
+.key-status{font-size:10px;font-weight:600;min-height:14px}
+.key-status.ok{color:#00e5a0}
+.key-status.err{color:#f04f4f}
+.key-status.chk{color:#f5a623}
+.key-hint{font-size:10px;color:#3d4d66}
+.key-hint a{color:#00e5a0;text-decoration:none}
+
+/* ── Lang selector ── */
+.lang-row{display:flex;align-items:center;gap:8px}
+.lang-box{
+  flex:1;background:#0d1117;border:1px solid #1e2a3d;
+  border-radius:9px;padding:8px 10px;
+  display:flex;flex-direction:column;gap:3px;
+}
+.lang-box label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#3d4d66;font-weight:700}
+.lang-box select{
+  background:transparent;border:none;color:#e8ecf5;
+  font-size:13px;font-weight:600;outline:none;cursor:pointer;
+  width:100%;font-family:inherit;
+}
+.swap-btn{
+  width:32px;height:32px;background:#131a26;
+  border:1px solid #1e2a3d;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:16px;color:#7e8ba8;
+  transition:all .14s;flex-shrink:0;
+}
+.swap-btn:hover{color:#00e5a0;border-color:rgba(0,229,160,.3)}
+
+/* ── Options ── */
+.opt-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 11px;background:#0d1117;border:1px solid #1e2a3d;
+  border-radius:9px;
+}
+.opt-label{font-size:12px;color:#7e8ba8}
+.toggle{
+  width:36px;height:20px;background:#131a26;
+  border:1px solid #1e2a3d;border-radius:10px;
+  cursor:pointer;position:relative;transition:all .2s;flex-shrink:0;
+}
+.toggle.on{background:#00e5a0;border-color:#00e5a0}
+.tknob{
+  position:absolute;top:2px;left:2px;
+  width:14px;height:14px;background:#fff;
+  border-radius:50%;transition:transform .2s;
+}
+.toggle.on .tknob{transform:translateX(16px)}
+
+/* ── Live preview ── */
+.preview{
+  background:#0d1117;border:1px solid #1e2a3d;
+  border-radius:10px;overflow:hidden;
+}
+.preview-row{
+  padding:8px 11px;border-bottom:1px solid #1e2a3d;
+  display:flex;flex-direction:column;gap:3px;
+}
+.preview-row:last-child{border-bottom:none}
+.preview-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#3d4d66}
+.preview-txt{font-size:12px;line-height:1.5;min-height:16px}
+.preview-txt.orig{color:#7e8ba8}
+.preview-txt.tran{color:#e8ecf5;font-weight:500}
+
+/* ── Footer ── */
+.ftr{
+  padding:9px 14px;border-top:1px solid #1e2a3d;
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:10px;color:#3d4d66;
+}
+.ftr a{color:#00e5a0;text-decoration:none;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="logo">
+    <div class="logo-ico">🎙</div>
+    <span class="logo-name">TalkSync</span>
+  </div>
+  <div class="status-pill" id="pill">
+    <span class="sdot"></span>
+    <span id="pill-txt">Idle</span>
+  </div>
+</div>
+
+<!-- Not on Meet -->
+<div class="warn-box" id="not-meet" style="display:none">
+  <div class="warn-icon">📹</div>
+  <div class="warn-text">
+    Please open a <strong>Google Meet</strong> call first, then click this icon.<br><br>
+    <a href="https://meet.google.com" id="open-meet">Open Google Meet →</a>
+  </div>
+</div>
+
+<!-- Main panel -->
+<div class="main" id="main-panel">
+
+  <!-- Start/Stop button -->
+  <button class="big-btn start" id="main-btn">🎙️ Start Translation</button>
+
+  <!-- Gemini API Key -->
+  <div>
+    <div class="sec">✨ Gemini API Key</div>
+    <div class="key-box">
+      <div class="key-row">
+        <input type="password" id="key-inp" placeholder="Paste your AIza... key here" spellcheck="false" autocomplete="off"/>
+        <button class="eye-btn" id="eye-btn">👁</button>
+      </div>
+      <div class="key-status" id="key-status"></div>
+      <div class="key-hint">
+        Free key at <a href="https://aistudio.google.com/app/apikey" id="key-link">aistudio.google.com →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Languages -->
+  <div>
+    <div class="sec">Languages</div>
+    <div class="lang-row">
+      <div class="lang-box">
+        <label>From</label>
+        <select id="src-lang">
+          <option value="en">🇬🇧 English</option>
+          <option value="hi">🇮🇳 Hindi</option>
+          <option value="pa">🇮🇳 Punjabi</option>
+          <option value="ur">🇵🇰 Urdu</option>
+          <option value="bn">🇧🇩 Bengali</option>
+          <option value="te">🇮🇳 Telugu</option>
+          <option value="ta">🇮🇳 Tamil</option>
+          <option value="es">🇪🇸 Spanish</option>
+          <option value="fr">🇫🇷 French</option>
+          <option value="de">🇩🇪 German</option>
+          <option value="ar">🇸🇦 Arabic</option>
+          <option value="zh">🇨🇳 Chinese</option>
+        </select>
+      </div>
+      <div class="swap-btn" id="swap-btn">⇄</div>
+      <div class="lang-box">
+        <label>To</label>
+        <select id="tgt-lang">
+          <option value="hi">🇮🇳 Hindi</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="pa">🇮🇳 Punjabi</option>
+          <option value="ur">🇵🇰 Urdu</option>
+          <option value="bn">🇧🇩 Bengali</option>
+          <option value="te">🇮🇳 Telugu</option>
+          <option value="ta">🇮🇳 Tamil</option>
+          <option value="es">🇪🇸 Spanish</option>
+          <option value="fr">🇫🇷 French</option>
+          <option value="de">🇩🇪 German</option>
+          <option value="ar">🇸🇦 Arabic</option>
+          <option value="zh">🇨🇳 Chinese</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div>
+    <div class="sec">Options</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div class="opt-row">
+        <span class="opt-label">🔊 Auto-speak translation</span>
+        <div class="toggle" id="tog-speak"><div class="tknob"></div></div>
+      </div>
+      <div class="opt-row">
+        <span class="opt-label">📍 Overlay position</span>
+        <select id="pos-sel" style="background:#131a26;border:1px solid #1e2a3d;border-radius:6px;color:#e8ecf5;padding:3px 7px;font-size:11px;outline:none;cursor:pointer">
+          <option value="bottom">Bottom</option>
+          <option value="top">Top</option>
+          <option value="left">Left</option>
+          <option value="right">Right</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live preview -->
+  <div>
+    <div class="sec">Live Preview</div>
+    <div class="preview">
+      <div class="preview-row">
+        <span class="preview-lbl">🎤 Original</span>
+        <div class="preview-txt orig" id="prev-orig">—</div>
+      </div>
+      <div class="preview-row">
+        <span class="preview-lbl">🌐 Translation</span>
+        <div class="preview-txt tran" id="prev-tran">—</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="ftr">
+  <span>TalkSync v1.0 · Free</span>
+  <span id="eng-used" style="color:#3d4d66"></span>
+</div>
+
+<script>
+// ════════════════════════════════════════
+//  POPUP SCRIPT — all inline, no imports
+// ════════════════════════════════════════
+
+let isRunning = false;
+let keyDebounce = null;
+
+// ── On load: restore settings ──────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Load saved settings
+  chrome.storage.sync.get(null, (s) => {
+    if (s.geminiApiKey) {
+      document.getElementById('key-inp').value = s.geminiApiKey;
+      document.getElementById('key-inp').classList.add('valid');
+      setKeyStatus('✅ Key saved & ready', 'ok');
+    }
+    if (s.srcLang) document.getElementById('src-lang').value = s.srcLang;
+    if (s.tgtLang) document.getElementById('tgt-lang').value = s.tgtLang;
+    if (s.autoSpeak) document.getElementById('tog-speak').classList.add('on');
+    if (s.overlayPos) document.getElementById('pos-sel').value = s.overlayPos;
+  });
+
+  // Check if we are on a Meet tab
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (!tabs || !tabs[0]) return;
+    const url = tabs[0].url || '';
+    const onMeet = url.startsWith('https://meet.google.com/');
+    document.getElementById('not-meet').style.display  = onMeet ? 'none'  : 'flex';
+    document.getElementById('main-panel').style.display = onMeet ? 'flex'  : 'none';
+  });
+
+  // Listen for translation results sent from content script
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === 'TRANSLATION') {
+      document.getElementById('prev-orig').textContent = msg.original   || '—';
+      document.getElementById('prev-tran').textContent = msg.translated || '—';
+      document.getElementById('eng-used').textContent  = msg.engine === 'gemini' ? '✨ Gemini' : '🌐 Google';
+    }
+  });
+});
+
+// ── Main button: Start / Stop ───────────
+document.getElementById('main-btn').addEventListener('click', () => {
+  if (isRunning) {
+    sendToContent({ type: 'STOP' });
+    setRunning(false);
+  } else {
+    // Push current settings first
+    pushSettings(() => {
+      sendToContent({ type: 'START' });
+      setRunning(true);
+    });
+  }
+});
+
+// ── API Key input ───────────────────────
+document.getElementById('key-inp').addEventListener('input', function () {
+  const key = this.value.trim();
+  this.classList.remove('valid', 'bad');
+  setKeyStatus('', '');
+  clearTimeout(keyDebounce);
+
+  if (!key) {
+    chrome.storage.sync.remove('geminiApiKey');
+    return;
+  }
+
+  if (!key.startsWith('AIza') || key.length < 20) {
+    this.classList.add('bad');
+    setKeyStatus('❌ Invalid — key must start with "AIza"', 'err');
+    return;
+  }
+
+  setKeyStatus('🔄 Checking key…', 'chk');
+  keyDebounce = setTimeout(() => validateKey(key), 800);
+});
+
+async function validateKey(key) {
+  const inp = document.getElementById('key-inp');
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: 'Say ok' }] }],
+          generationConfig: { maxOutputTokens: 3 }
+        })
+      }
+    );
+    if (res.ok) {
+      inp.classList.add('valid');
+      setKeyStatus('✅ Valid key — Gemini AI ready!', 'ok');
+      chrome.storage.sync.set({ geminiApiKey: key });
+    } else {
+      const d = await res.json().catch(() => ({}));
+      inp.classList.add('bad');
+      setKeyStatus('❌ ' + (d?.error?.message || `Error ${res.status}`), 'err');
+    }
+  } catch {
+    inp.classList.add('bad');
+    setKeyStatus('❌ Network error — check internet', 'err');
+  }
+}
+
+// ── Eye toggle (show/hide key) ──────────
+document.getElementById('eye-btn').addEventListener('click', () => {
+  const inp = document.getElementById('eye-btn');
+  const field = document.getElementById('key-inp');
+  if (field.type === 'password') {
+    field.type = 'text';
+    inp.textContent = '🙈';
+  } else {
+    field.type = 'password';
+    inp.textContent = '👁';
+  }
+});
+
+// ── Language swap ───────────────────────
+document.getElementById('swap-btn').addEventListener('click', () => {
+  const s = document.getElementById('src-lang');
+  const t = document.getElementById('tgt-lang');
+  [s.value, t.value] = [t.value, s.value];
+  saveAndPush();
+});
+
+// ── Auto-save on any change ─────────────
+document.getElementById('src-lang').addEventListener('change', saveAndPush);
+document.getElementById('tgt-lang').addEventListener('change', saveAndPush);
+document.getElementById('pos-sel').addEventListener('change',  saveAndPush);
+document.getElementById('tog-speak').addEventListener('click', function () {
+  this.classList.toggle('on');
+  saveAndPush();
+});
+
+// ── Open links in new tab ───────────────
+document.getElementById('open-meet').addEventListener('click', (e) => {
+  e.preventDefault();
+  chrome.tabs.create({ url: 'https://meet.google.com' });
+});
+document.getElementById('key-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  chrome.tabs.create({ url: 'https://aistudio.google.com/app/apikey' });
+});
+
+// ── Helpers ─────────────────────────────
+function setRunning(running) {
+  isRunning = running;
+  const btn  = document.getElementById('main-btn');
+  const pill = document.getElementById('pill');
+  const ptxt = document.getElementById('pill-txt');
+  if (running) {
+    btn.textContent = '⏹ Stop Translation';
+    btn.className = 'big-btn stop';
+    pill.className = 'status-pill live';
+    ptxt.textContent = 'Live';
+  } else {
+    btn.textContent = '🎙️ Start Translation';
+    btn.className = 'big-btn start';
+    pill.className = 'status-pill';
+    ptxt.textContent = 'Idle';
+  }
+}
+
+function setKeyStatus(msg, cls) {
+  const el = document.getElementById('key-status');
+  el.textContent = msg;
+  el.className = 'key-status ' + cls;
+}
+
+function saveAndPush() {
+  chrome.storage.sync.set({
+    srcLang:   document.getElementById('src-lang').value,
+    tgtLang:   document.getElementById('tgt-lang').value,
+    autoSpeak: document.getElementById('tog-speak').classList.contains('on'),
+    overlayPos: document.getElementById('pos-sel').value
+  });
+  if (isRunning) pushSettings();
+}
+
+function pushSettings(cb) {
+  const settings = {
+    geminiApiKey: document.getElementById('key-inp').value.trim(),
+    srcLang:      document.getElementById('src-lang').value,
+    tgtLang:      document.getElementById('tgt-lang').value,
+    autoSpeak:    document.getElementById('tog-speak').classList.contains('on'),
+    overlayPos:   document.getElementById('pos-sel').value
+  };
+  chrome.storage.sync.set(settings);
+  sendToContent({ type: 'SETTINGS', settings }, cb);
+}
+
+function sendToContent(data, cb) {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (!tabs || !tabs[0]) { if (cb) cb(); return; }
+    chrome.tabs.sendMessage(tabs[0].id, data, (res) => {
+      // Ignore "no receiver" error — content script self-injects
+      if (chrome.runtime.lastError) console.log('[TalkSync popup]', chrome.runtime.lastError.message);
+      if (cb) cb();
+    });
+  });
+}
+</script>
+</body>
+</html>

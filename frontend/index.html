@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TalkSync — Real-Time AI Translator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════
+   VARIABLES & RESET
+══════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090f;
+  --s1:#0d1117;
+  --s2:#131a26;
+  --s3:#1a2235;
+  --b1:#1e2a3d;
+  --b2:#243048;
+  --acc:#00e5a0;
+  --acc2:rgba(0,229,160,.13);
+  --acc3:rgba(0,229,160,.06);
+  --glow:rgba(0,229,160,.3);
+  --blue:#4d8ef5;
+  --orange:#f5a623;
+  --red:#f04f4f;
+  --purple:#a855f7;
+  --tx:#e8ecf5;
+  --tx2:#7e8ba8;
+  --tx3:#3d4d66;
+  --r:14px;--r2:9px;
+  --sb:230px;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);overflow:hidden}
+body{display:flex}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px}
+input,select,button,textarea{font-family:'DM Sans',sans-serif}
+
+/* ══════════════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════════════ */
+.sidebar{
+  width:var(--sb);height:100vh;background:var(--s1);
+  border-right:1px solid var(--b1);
+  display:flex;flex-direction:column;padding:18px 12px;
+  flex-shrink:0;position:relative;z-index:5;
+}
+.sidebar::after{
+  content:'';position:absolute;right:0;top:0;width:1px;height:100%;
+  background:linear-gradient(to bottom,transparent,var(--glow) 50%,transparent);
+  opacity:.4;pointer-events:none;
+}
+/* Logo */
+.logo{display:flex;align-items:center;gap:9px;margin-bottom:28px;padding:2px 4px}
+.logo-icon{
+  width:32px;height:32px;border-radius:9px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--acc),#00aaff);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 16px var(--glow);
+}
+.logo-icon svg{width:16px;height:16px;fill:#000}
+.logo-text{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--tx);letter-spacing:-.3px}
+.logo-sub{font-size:9px;color:var(--acc);letter-spacing:2px;text-transform:uppercase;font-weight:500}
+
+/* Nav */
+.nav{display:flex;flex-direction:column;gap:1px;flex:1}
+.nav-sep{font-size:9px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--tx3);padding:14px 10px 5px}
+.nav-item{
+  display:flex;align-items:center;gap:9px;padding:9px 10px;
+  border-radius:var(--r2);font-size:13px;font-weight:500;
+  color:var(--tx2);cursor:pointer;transition:all .15s;
+  border:1px solid transparent;user-select:none;
+}
+.nav-item svg{width:16px;height:16px;flex-shrink:0}
+.nav-item:hover{background:var(--s2);color:var(--tx);border-color:var(--b1)}
+.nav-item.active{background:var(--acc2);color:var(--acc);border-color:rgba(0,229,160,.18)}
+
+/* Sidebar footer */
+.sb-footer{
+  padding:10px;background:var(--s2);border-radius:var(--r2);
+  border:1px solid var(--b1);display:flex;align-items:center;gap:9px;
+  margin-top:10px;
+}
+.sb-avatar{
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--blue),var(--purple));
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;
+}
+.sb-uname{font-size:12px;font-weight:600;color:var(--tx)}
+.sb-urole{font-size:10px;color:var(--tx3)}
+.sb-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--acc);
+  margin-left:auto;flex-shrink:0;box-shadow:0 0 5px var(--acc);
+  animation:blink 2s infinite;
+}
+/* Backend status indicator */
+.sb-conn{
+  margin-top:8px;padding:7px 10px;
+  background:var(--s3);border-radius:var(--r2);border:1px solid var(--b1);
+  display:flex;align-items:center;gap:7px;font-size:10px;color:var(--tx3);
+}
+.sb-conn-dot{width:6px;height:6px;border-radius:50%;background:var(--tx3);flex-shrink:0}
+.sb-conn-dot.on{background:var(--acc);box-shadow:0 0 4px var(--acc)}
+.sb-conn-dot.err{background:var(--red)}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ══════════════════════════════════════════════════
+   MAIN
+══════════════════════════════════════════════════ */
+.main{flex:1;height:100vh;overflow-y:auto;padding:26px 30px;background:var(--bg)}
+.page{display:none;animation:fadeUp .28s ease}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Page header */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:14px;flex-wrap:wrap}
+.ph h1{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;letter-spacing:-.5px}
+.ph-sub{font-size:12px;color:var(--tx2);margin-top:3px}
+
+/* ══════════════════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════════════════ */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;padding:8px 15px;
+  border-radius:var(--r2);font-size:13px;font-weight:600;
+  cursor:pointer;transition:all .14s;border:none;white-space:nowrap;
+}
+.btn-acc{background:var(--acc);color:#000}
+.btn-acc:hover{background:#14f5b0;box-shadow:0 3px 14px var(--glow);transform:translateY(-1px)}
+.btn-acc.rec{background:var(--red);color:#fff;box-shadow:0 3px 14px rgba(240,79,79,.3)}
+.btn-ghost{background:var(--s2);color:var(--tx2);border:1px solid var(--b1)}
+.btn-ghost:hover{color:var(--tx);border-color:var(--b2)}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:6px}
+.iBtn{
+  background:transparent;border:1px solid var(--b1);color:var(--tx2);
+  padding:5px 8px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .13s;
+}
+.iBtn:hover{background:var(--s2);color:var(--tx)}
+
+/* ══════════════════════════════════════════════════
+   STATS
+══════════════════════════════════════════════════ */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.stat{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);
+  padding:16px;display:flex;align-items:center;gap:12px;
+  transition:border-color .2s,transform .15s;cursor:default;
+}
+.stat:hover{border-color:var(--b2);transform:translateY(-2px)}
+.stat-ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.g{background:rgba(0,229,160,.1)}.b{background:rgba(77,142,245,.1)}
+.o{background:rgba(245,166,35,.1)}.p{background:rgba(168,85,247,.1)}
+.stat-v{font-family:'Syne',sans-serif;font-size:20px;font-weight:700}
+.stat-l{font-size:11px;color:var(--tx2);margin-top:1px}
+
+/* ══════════════════════════════════════════════════
+   SECTION LABEL
+══════════════════════════════════════════════════ */
+.slbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);margin-bottom:10px}
+
+/* ══════════════════════════════════════════════════
+   CALL CARDS
+══════════════════════════════════════════════════ */
+.call-list{display:flex;flex-direction:column;gap:7px}
+.call-card{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);
+  padding:13px 16px;display:flex;align-items:center;justify-content:space-between;
+  transition:all .16s;cursor:pointer;
+}
+.call-card:hover{border-color:var(--b2);background:var(--s2);transform:translateX(3px)}
+.cc-name{font-size:13px;font-weight:600}
+.cc-meta{font-size:11px;color:var(--tx2);margin-top:2px}
+.cc-right{display:flex;align-items:center;gap:9px}
+
+/* Badges */
+.badge{padding:2px 9px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.badge.live{background:rgba(0,229,160,.1);color:var(--acc);border:1px solid rgba(0,229,160,.22)}
+.badge.sched{background:rgba(77,142,245,.1);color:var(--blue);border:1px solid rgba(77,142,245,.22)}
+.badge.done{background:var(--s3);color:var(--tx3);border:1px solid var(--b1)}
+.badge.ok{background:rgba(0,229,160,.1);color:var(--acc)}
+.badge.warn{background:rgba(245,166,35,.1);color:var(--orange)}
+.badge.err{background:rgba(240,79,79,.1);color:var(--red)}
+
+/* ══════════════════════════════════════════════════
+   LIVE PAGE — KEY + LANG BAR
+══════════════════════════════════════════════════ */
+.top-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);
+  padding:12px 16px;margin-bottom:14px;
+}
+.api-input-wrap{
+  display:flex;align-items:center;gap:6px;
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);
+  padding:5px 10px;flex:1;min-width:220px;
+}
+.api-input-wrap label{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
+.api-input-wrap input{
+  flex:1;background:transparent;border:none;color:var(--tx);
+  font-size:12px;outline:none;font-family:monospace;
+}
+.key-dot{width:7px;height:7px;border-radius:50%;background:var(--tx3);flex-shrink:0;transition:background .3s}
+.key-dot.ok{background:var(--acc);box-shadow:0 0 5px var(--acc)}
+.key-dot.err{background:var(--red)}
+
+.lang-box{
+  display:flex;align-items:center;gap:6px;
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);padding:5px 10px;
+}
+.lang-box label{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
+.lang-box select{background:transparent;border:none;color:var(--tx);font-size:13px;font-weight:600;outline:none;cursor:pointer}
+.swap-btn{font-size:17px;color:var(--tx2);cursor:pointer;padding:4px 6px;border-radius:6px;transition:all .14s}
+.swap-btn:hover{color:var(--acc);background:var(--acc2)}
+
+/* ══════════════════════════════════════════════════
+   WAVEFORM BAR
+══════════════════════════════════════════════════ */
+.wave-bar{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);
+  padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:14px;
+}
+.wave-status{display:flex;align-items:center;gap:7px;min-width:180px;white-space:nowrap}
+.wdot{width:8px;height:8px;border-radius:50%;background:var(--tx3);flex-shrink:0;transition:background .3s}
+.wdot.rec{background:var(--red);animation:pulse 1s infinite}
+.wdot.go{background:var(--acc);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.75)}}
+.wlbl{font-size:11px;color:var(--tx2)}
+#wave-canvas{flex:1}
+
+/* ══════════════════════════════════════════════════
+   TRANSLATION PANELS
+══════════════════════════════════════════════════ */
+.trans-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.tpanel{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);display:flex;flex-direction:column;min-height:160px}
+.tpanel.hl{border-color:rgba(0,229,160,.2)}
+.tph{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid var(--b1);font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--tx2)}
+.tph-acts{display:flex;gap:4px}
+.tbody{flex:1;padding:13px;font-size:14px;line-height:1.8;color:var(--tx);overflow-y:auto;white-space:pre-wrap}
+.ph{color:var(--tx3);font-size:12px;font-style:italic}
+
+/* Engine badge */
+.eng{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-left:6px}
+.eng.gemini{background:rgba(0,229,160,.1);color:var(--acc);border:1px solid rgba(0,229,160,.2)}
+.eng.google{background:rgba(77,142,245,.1);color:var(--blue);border:1px solid rgba(77,142,245,.2)}
+
+/* ══════════════════════════════════════════════════
+   MANUAL INPUT
+══════════════════════════════════════════════════ */
+.input-row{display:flex;gap:8px;margin-bottom:16px}
+.input-row input{
+  flex:1;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);
+  padding:9px 13px;color:var(--tx);font-size:13px;outline:none;transition:border-color .15s;
+}
+.input-row input:focus{border-color:var(--acc)}
+.input-row input::placeholder{color:var(--tx3)}
+
+/* ══════════════════════════════════════════════════
+   TRANSCRIPT
+══════════════════════════════════════════════════ */
+.transcript{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);
+  padding:12px;min-height:90px;max-height:190px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:7px;
+}
+.te{padding:8px 11px;background:var(--s2);border-radius:7px;border-left:3px solid var(--b1);animation:fadeUp .22s ease}
+.te.orig{border-color:var(--blue)}.te.tran{border-color:var(--acc)}
+.te-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--tx3);margin-bottom:2px}
+.te-txt{font-size:12px;color:var(--tx);line-height:1.5}
+.te-time{font-size:9px;color:var(--tx3);margin-top:2px}
+.t-empty{color:var(--tx3);font-size:12px;font-style:italic}
+
+/* ══════════════════════════════════════════════════
+   PLATFORMS PAGE
+══════════════════════════════════════════════════ */
+.platform-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.plat-card{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);
+  padding:22px 18px;display:flex;flex-direction:column;align-items:center;
+  gap:12px;text-align:center;transition:all .18s;cursor:default;
+}
+.plat-card:hover{border-color:var(--b2);transform:translateY(-3px)}
+.plat-icon{font-size:36px;line-height:1}
+.plat-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:700}
+.plat-desc{font-size:11px;color:var(--tx2);line-height:1.5}
+.plat-status{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600}
+.plat-status.ready{color:var(--acc)}
+.plat-status.ext{color:var(--blue)}
+.plat-status.soon{color:var(--tx3)}
+.plat-steps{
+  background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+  padding:10px 12px;text-align:left;width:100%;
+}
+.plat-steps p{font-size:11px;color:var(--tx2);line-height:1.6}
+.plat-steps code{font-size:10px;background:var(--s3);padding:1px 5px;border-radius:4px;color:var(--acc);font-family:monospace}
+
+/* ══════════════════════════════════════════════════
+   GLOSSARY
+══════════════════════════════════════════════════ */
+.gloss-tbl{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.gloss-hd{display:grid;grid-template-columns:1fr 1fr 1fr 48px;gap:12px;padding:9px 16px;background:var(--s2);border-bottom:1px solid var(--b1);font-size:9px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--tx3)}
+.gloss-row{display:grid;grid-template-columns:1fr 1fr 1fr 48px;gap:12px;padding:9px 16px;border-bottom:1px solid var(--b1);align-items:center;transition:background .14s}
+.gloss-row:hover{background:var(--s2)}.gloss-row:last-child{border-bottom:none}
+.gloss-row input{background:transparent;border:1px solid transparent;border-radius:5px;color:var(--tx);padding:3px 7px;font-size:12px;width:100%;outline:none;transition:border-color .13s}
+.gloss-row input:focus{border-color:var(--acc);background:var(--s3)}
+
+/* ══════════════════════════════════════════════════
+   SETTINGS
+══════════════════════════════════════════════════ */
+.sett-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.scard{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:12px}
+.scard-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;padding-bottom:9px;border-bottom:1px solid var(--b1)}
+.slbl2{font-size:10px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px}
+.ssel,.sinp{background:var(--s2);border:1px solid var(--b1);border-radius:7px;color:var(--tx);padding:7px 10px;font-size:12px;outline:none;width:100%;transition:border-color .13s}
+.ssel:focus,.sinp:focus{border-color:var(--acc)}
+.srange{width:100%;accent-color:var(--acc);cursor:pointer}
+.intg-list{display:flex;flex-direction:column;gap:9px}
+.intg-item{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--tx2)}
+.toggle{width:38px;height:22px;background:var(--s3);border:1px solid var(--b1);border-radius:11px;cursor:pointer;position:relative;transition:all .18s;flex-shrink:0}
+.toggle.on{background:var(--acc);border-color:var(--acc)}
+.tknob{position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .18s}
+.toggle.on .tknob{transform:translateX(16px)}
+
+/* Conn status */
+.conn-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:18px}
+.conn-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--b1);font-size:12px;color:var(--tx2)}
+.conn-row:last-of-type{border-bottom:none}
+
+/* ══════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════ */
+.toast{
+  position:fixed;bottom:20px;right:20px;z-index:9999;
+  background:var(--s1);border:1px solid var(--b2);border-radius:11px;
+  padding:10px 18px;font-size:12px;color:var(--tx);
+  box-shadow:0 6px 28px rgba(0,0,0,.55);animation:toastIn .25s ease;
+}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════ */
+@media(max-width:960px){.stats{grid-template-columns:1fr 1fr}.trans-grid{grid-template-columns:1fr}.sett-grid{grid-template-columns:1fr}.platform-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.sidebar{display:none}.main{padding:16px}.stats{grid-template-columns:1fr}.platform-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14V8l6 4-6 4z"/></svg>
+    </div>
+    <div>
+      <div class="logo-text">TalkSync</div>
+      <div class="logo-sub">AI Translator</div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-sep">Main</div>
+    <div class="nav-item active" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1" opacity=".4"/><rect x="3" y="14" width="7" height="7" rx="1" opacity=".4"/><rect x="14" y="14" width="7" height="7" rx="1" opacity=".4"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" data-page="live">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      Live Call
+    </div>
+    <div class="nav-sep">Manage</div>
+    <div class="nav-item" data-page="platforms">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      Platforms
+    </div>
+    <div class="nav-item" data-page="history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      History
+    </div>
+    <div class="nav-item" data-page="glossary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 10h16M4 14h10M4 18h7" stroke-linecap="round"/></svg>
+      Glossary
+    </div>
+    <div class="nav-item" data-page="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      Settings
+    </div>
+  </nav>
+
+  <div class="sb-conn" id="sb-conn">
+    <span class="sb-conn-dot" id="sb-cdot"></span>
+    <span id="sb-ctext">Backend offline</span>
+  </div>
+
+  <div class="sb-footer">
+    <div class="sb-avatar">S</div>
+    <div><div class="sb-uname">Sunny</div><div class="sb-urole">Admin</div></div>
+    <div class="sb-dot"></div>
+  </div>
+</aside>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main class="main">
+
+  <!-- ── DASHBOARD ── -->
+  <div class="page active" id="page-dashboard">
+    <div class="ph">
+      <div><h1>Dashboard</h1><div class="ph-sub">Scheduled &amp; ongoing calls</div></div>
+      <button class="btn btn-acc" onclick="goPage('live')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"/></svg>
+        Start Live Call
+      </button>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-ico g">🎙️</div><div><div class="stat-v" id="s-active">3</div><div class="stat-l">Active Calls</div></div></div>
+      <div class="stat"><div class="stat-ico b">🌐</div><div><div class="stat-v" id="s-today">0</div><div class="stat-l">Translated Today</div></div></div>
+      <div class="stat"><div class="stat-ico o">⚡</div><div><div class="stat-v" id="s-engine">—</div><div class="stat-l">AI Engine</div></div></div>
+      <div class="stat"><div class="stat-ico p">🔑</div><div><div class="stat-v" id="s-key">—</div><div class="stat-l">API Key</div></div></div>
+    </div>
+    <div class="slbl">Upcoming Calls</div>
+    <div class="call-list" id="dash-calls"></div>
+  </div>
+
+  <!-- ── LIVE CALL ── -->
+  <div class="page" id="page-live">
+    <div class="ph">
+      <div><h1>Live Call</h1><div class="ph-sub" id="live-sub">Configure and press Start</div></div>
+    </div>
+
+    <!-- TOP BAR: API Key + Languages + Start -->
+    <div class="top-bar">
+      <div class="api-input-wrap">
+        <label>Gemini Key</label>
+        <input type="password" id="gemini-key" placeholder="AIza..." oninput="onKeyInput()" autocomplete="off"/>
+        <span class="key-dot" id="key-dot"></span>
+      </div>
+      <div class="lang-box">
+        <label>From</label>
+        <select id="src-lang">
+          <option value="en">🇬🇧 English</option>
+          <option value="hi">🇮🇳 Hindi</option>
+          <option value="pa">🇮🇳 Punjabi</option>
+          <option value="ur">🇵🇰 Urdu</option>
+          <option value="bn">🇧🇩 Bengali</option>
+          <option value="te">🇮🇳 Telugu</option>
+          <option value="ta">🇮🇳 Tamil</option>
+          <option value="es">🇪🇸 Spanish</option>
+          <option value="fr">🇫🇷 French</option>
+          <option value="de">🇩🇪 German</option>
+          <option value="ar">🇸🇦 Arabic</option>
+          <option value="zh">🇨🇳 Chinese</option>
+        </select>
+      </div>
+      <span class="swap-btn" onclick="swapLangs()">⇄</span>
+      <div class="lang-box">
+        <label>To</label>
+        <select id="tgt-lang">
+          <option value="hi">🇮🇳 Hindi</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="pa">🇮🇳 Punjabi</option>
+          <option value="ur">🇵🇰 Urdu</option>
+          <option value="bn">🇧🇩 Bengali</option>
+          <option value="te">🇮🇳 Telugu</option>
+          <option value="ta">🇮🇳 Tamil</option>
+          <option value="es">🇪🇸 Spanish</option>
+          <option value="fr">🇫🇷 French</option>
+          <option value="de">🇩🇪 German</option>
+          <option value="ar">🇸🇦 Arabic</option>
+          <option value="zh">🇨🇳 Chinese</option>
+        </select>
+      </div>
+      <button class="btn btn-acc" id="mic-btn" onclick="toggleMic()">🎙️ Start</button>
+    </div>
+
+    <!-- Waveform -->
+    <div class="wave-bar">
+      <div class="wave-status">
+        <span class="wdot" id="wdot"></span>
+        <span class="wlbl" id="wlbl">Idle — press Start to begin</span>
+      </div>
+      <canvas id="wave-canvas" height="48"></canvas>
+    </div>
+
+    <!-- Translation panels -->
+    <div class="trans-grid">
+      <div class="tpanel">
+        <div class="tph">
+          🎤 Original
+          <div class="tph-acts"><button class="iBtn" onclick="clrPanel('orig-body','Speak to begin...')">✕</button></div>
+        </div>
+        <div class="tbody" id="orig-body"><span class="ph">Speak to begin...</span></div>
+      </div>
+      <div class="tpanel hl">
+        <div class="tph">
+          🌐 Translation <span class="eng" id="eng-badge" style="display:none"></span>
+          <div class="tph-acts">
+            <button class="iBtn" onclick="speakOut()" title="Speak">🔊</button>
+            <button class="iBtn" onclick="copyOut()" title="Copy">📋</button>
+            <button class="iBtn" onclick="clrPanel('tran-body','Translation appears here...')">✕</button>
+          </div>
+        </div>
+        <div class="tbody" id="tran-body"><span class="ph">Translation appears here...</span></div>
+      </div>
+    </div>
+
+    <!-- Manual input -->
+    <div class="slbl">Manual Input</div>
+    <div class="input-row">
+      <input type="text" id="manual-inp" placeholder="Type text to translate..." onkeydown="if(event.key==='Enter')doManual()"/>
+      <button class="btn btn-acc" onclick="doManual()">Translate</button>
+    </div>
+
+    <!-- Transcript -->
+    <div class="slbl">Session Transcript <span id="tc-count" style="color:var(--tx3);font-size:10px;font-weight:400;text-transform:none;letter-spacing:0">(0)</span></div>
+    <div class="transcript" id="transcript"><span class="t-empty">No transcript yet.</span></div>
+  </div>
+
+  <!-- ── PLATFORMS ── -->
+  <div class="page" id="page-platforms">
+    <div class="ph">
+      <div><h1>Platform Connections</h1><div class="ph-sub">How to use TalkSync with each platform</div></div>
+    </div>
+    <div class="platform-grid">
+
+      <div class="plat-card" style="border-color:rgba(0,229,160,.25)">
+        <div class="plat-icon">📹</div>
+        <div class="plat-name">Google Meet</div>
+        <div class="plat-desc">Full real-time overlay via Chrome Extension</div>
+        <div class="plat-status ready">✅ Fully Supported</div>
+        <div class="plat-steps">
+          <p>1. Install the <strong>TalkSync Chrome Extension</strong><br>
+          2. Join a Meet call<br>
+          3. Click the 🎙 icon in toolbar<br>
+          4. Paste Gemini key → Start<br>
+          5. Overlay appears on Meet screen</p>
+        </div>
+        <button class="btn btn-acc btn-sm" onclick="toast('Extension folder: TalkSync-Extension/')">Get Extension</button>
+      </div>
+
+      <div class="plat-card" style="border-color:rgba(77,142,245,.25)">
+        <div class="plat-icon">🎥</div>
+        <div class="plat-name">Zoom</div>
+        <div class="plat-desc">Use side-by-side with TalkSync web app</div>
+        <div class="plat-status ext">🔵 Side-by-Side Mode</div>
+        <div class="plat-steps">
+          <p>1. Open this app in Chrome<br>
+          2. Go to <strong>Live Call</strong> tab<br>
+          3. Open Zoom in separate window<br>
+          4. Press Start — speak in Zoom,<br>&nbsp;&nbsp;&nbsp;read translation here in real-time</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="goPage('live')">Open Live Call</button>
+      </div>
+
+      <div class="plat-card" style="border-color:rgba(168,85,247,.25)">
+        <div class="plat-icon">💼</div>
+        <div class="plat-name">Microsoft Teams</div>
+        <div class="plat-desc">Use side-by-side with TalkSync web app</div>
+        <div class="plat-status ext">🔵 Side-by-Side Mode</div>
+        <div class="plat-steps">
+          <p>1. Open this app in Chrome<br>
+          2. Go to <strong>Live Call</strong> tab<br>
+          3. Open Teams in separate window<br>
+          4. Press Start — mic captures<br>&nbsp;&nbsp;&nbsp;everything said in the meeting</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="goPage('live')">Open Live Call</button>
+      </div>
+
+      <div class="plat-card">
+        <div class="plat-icon">🌐</div>
+        <div class="plat-name">Any Browser Call</div>
+        <div class="plat-desc">Works with any web-based video call</div>
+        <div class="plat-status ready">✅ Universal</div>
+        <div class="plat-steps">
+          <p>This app uses your <strong>system microphone</strong>.<br>
+          It picks up all audio in your environment — so it works with any meeting tool simultaneously.</p>
+        </div>
+        <button class="btn btn-acc btn-sm" onclick="goPage('live')">Start Now</button>
+      </div>
+
+      <div class="plat-card">
+        <div class="plat-icon">🔌</div>
+        <div class="plat-name">Python Backend</div>
+        <div class="plat-desc">Connect for Gemini-powered translation</div>
+        <div class="plat-status ready" id="backend-plat-status">⚪ Checking...</div>
+        <div class="plat-steps">
+          <p>Start backend:<br>
+          <code>cd backend</code><br>
+          <code>pip install -r requirements.txt</code><br>
+          <code>uvicorn main:app --reload</code><br>
+          Add key to <code>.env</code> file</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="checkBackend()">Check Status</button>
+      </div>
+
+      <div class="plat-card">
+        <div class="plat-icon">📱</div>
+        <div class="plat-name">Mobile / Tablet</div>
+        <div class="plat-desc">Responsive web interface</div>
+        <div class="plat-status soon">🔜 Coming Soon</div>
+        <div class="plat-steps">
+          <p>Mobile-specific features planned:<br>
+          • iOS / Android native app<br>
+          • WhatsApp call integration<br>
+          • Bluetooth earpiece TTS output</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="opacity:.4;cursor:default">Coming Soon</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── HISTORY ── -->
+  <div class="page" id="page-history">
+    <div class="ph">
+      <div><h1>Call History</h1><div class="ph-sub">Past sessions &amp; transcripts</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="clearHistory()">Clear All</button>
+    </div>
+    <div id="history-body"><div style="color:var(--tx3);font-size:13px;padding:20px 0">No history yet. Start a live session.</div></div>
+  </div>
+
+  <!-- ── GLOSSARY ── -->
+  <div class="page" id="page-glossary">
+    <div class="ph">
+      <div><h1>Custom Glossary</h1><div class="ph-sub">Custom terms sent to Gemini for accurate translation</div></div>
+      <button class="btn btn-acc" onclick="addGloss()">+ Add Term</button>
+    </div>
+    <div class="gloss-tbl">
+      <div class="gloss-hd"><span>English</span><span>Translation</span><span>Context</span><span></span></div>
+      <div id="gloss-body"></div>
+    </div>
+  </div>
+
+  <!-- ── SETTINGS ── -->
+  <div class="page" id="page-settings">
+    <div class="ph"><div><h1>Settings</h1><div class="ph-sub">Configure AI, audio &amp; preferences</div></div></div>
+    <div class="sett-grid">
+      <div class="scard">
+        <div class="scard-title">🤖 Gemini AI</div>
+        <div class="slbl2">API Key</div>
+        <input type="password" class="sinp" id="settings-key" placeholder="AIza..." oninput="syncKeyFromSettings()"/>
+        <div class="slbl2">Model</div>
+        <select class="ssel"><option>gemini-1.5-flash (Recommended)</option><option>gemini-1.5-pro</option></select>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:11px;color:var(--acc)">Get free API key →</a>
+      </div>
+      <div class="scard">
+        <div class="scard-title">🌐 Language</div>
+        <div class="slbl2">Default Source</div>
+        <select class="ssel" id="def-src"><option value="en">English</option><option value="hi">Hindi</option><option value="pa">Punjabi</option></select>
+        <div class="slbl2">Default Target</div>
+        <select class="ssel" id="def-tgt"><option value="hi">Hindi</option><option value="en">English</option><option value="pa">Punjabi</option></select>
+      </div>
+      <div class="scard">
+        <div class="scard-title">🔊 Audio</div>
+        <div class="slbl2">TTS Voice</div>
+        <select class="ssel"><option>Female (Default)</option><option>Male</option></select>
+        <div class="slbl2">Volume</div>
+        <input type="range" min="0" max="100" value="85" class="srange"/>
+        <div class="slbl2">Speech Rate</div>
+        <input type="range" min="50" max="180" value="95" class="srange"/>
+      </div>
+      <div class="scard">
+        <div class="scard-title">⚙️ Behavior</div>
+        <div class="intg-list">
+          <div class="intg-item"><span>Auto-speak translation</span><div class="toggle" id="tog-speak" onclick="this.classList.toggle('on')"><div class="tknob"></div></div></div>
+          <div class="intg-item"><span>Show interim words</span><div class="toggle on" id="tog-interim" onclick="this.classList.toggle('on')"><div class="tknob"></div></div></div>
+          <div class="intg-item"><span>Save transcript</span><div class="toggle on" onclick="this.classList.toggle('on')"><div class="tknob"></div></div></div>
+          <div class="intg-item"><span>Use backend if available</span><div class="toggle on" id="tog-backend" onclick="this.classList.toggle('on')"><div class="tknob"></div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="conn-card">
+      <div class="slbl" style="margin-bottom:12px">Backend Connection (localhost:8000)</div>
+      <div class="conn-row"><span>API Server</span><span class="badge" id="badge-api">Checking…</span></div>
+      <div class="conn-row"><span>WebSocket</span><span class="badge" id="badge-ws">—</span></div>
+      <div class="conn-row"><span>Gemini Key (backend)</span><span class="badge" id="badge-key">—</span></div>
+      <br>
+      <button class="btn btn-ghost" onclick="checkBackend()">🔄 Refresh</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- ═══════════════ JAVASCRIPT ═══════════════ -->
+<script>
+// ═══════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════
+const API        = 'http://localhost:8000';
+const G_CODES    = {en:'en',hi:'hi',pa:'pa',ur:'ur',bn:'bn',te:'te',ta:'ta',es:'es',fr:'fr',de:'de',ar:'ar',zh:'zh-CN'};
+const LANG_NAMES = {en:'English',hi:'Hindi',pa:'Punjabi',ur:'Urdu',bn:'Bengali',te:'Telugu',ta:'Tamil',es:'Spanish',fr:'French',de:'German',ar:'Arabic',zh:'Chinese'};
+const SPEECH_LANG= {en:'en-US',hi:'hi-IN',pa:'pa-IN',ur:'ur-PK',bn:'bn-BD',te:'te-IN',ta:'ta-IN',es:'es-ES',fr:'fr-FR',de:'de-DE',ar:'ar-SA',zh:'zh-CN'};
+
+let geminiKey    = localStorage.getItem('ts_gemini_key') || '';
+let backendAlive = false;
+let translateCount = 0;
+
+// ═══════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════
+document.querySelectorAll('.nav-item').forEach(el =>
+  el.addEventListener('click', () => goPage(el.dataset.page))
+);
+function goPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name)?.classList.add('active');
+  document.querySelector(`[data-page="${name}"]`)?.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════
+const CALLS = [
+  { name:'Acme Corp — Product Review',  meta:'Now · Google Meet',  status:'live'  },
+  { name:'TechBase Ltd — Onboarding',   meta:'2:30 PM · Zoom',     status:'sched' },
+  { name:'GlobalSoft — Sprint Sync',    meta:'4:00 PM · Teams',    status:'sched' },
+  { name:'InnoWave — Design Handoff',   meta:'Yesterday · Zoom',   status:'done'  },
+];
+function renderDash() {
+  document.getElementById('dash-calls').innerHTML = CALLS.map(c => `
+    <div class="call-card" onclick="goPage('live')">
+      <div><div class="cc-name">${c.name}</div><div class="cc-meta">${c.meta}</div></div>
+      <div class="cc-right">
+        <span class="badge ${c.status}">${c.status==='live'?'🔴 Live':c.status==='sched'?'Scheduled':'Done'}</span>
+        ${c.status==='live'?`<button class="btn btn-acc btn-sm" onclick="event.stopPropagation();goPage('live')">Join</button>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function updateDashStats() {
+  document.getElementById('s-today').textContent  = translateCount;
+  document.getElementById('s-engine').textContent = backendAlive ? 'Backend' : (geminiKey ? 'Gemini' : 'Google');
+  document.getElementById('s-key').textContent    = geminiKey ? '✅ Set' : '⚠️ None';
+}
+
+// ═══════════════════════════════════════════════════
+//  GLOSSARY
+// ═══════════════════════════════════════════════════
+let glossary = [
+  {en:'Sprint',      hi:'स्प्रिंट',   ctx:'Agile'},
+  {en:'Deployment',  hi:'तैनाती',     ctx:'Tech'},
+  {en:'Stakeholder', hi:'हितधारक',    ctx:'Business'},
+];
+function renderGloss() {
+  document.getElementById('gloss-body').innerHTML = glossary.map((g,i) => `
+    <div class="gloss-row">
+      <input value="${g.en}"  placeholder="English"    oninput="glossary[${i}].en=this.value"/>
+      <input value="${g.hi}"  placeholder="Translation" oninput="glossary[${i}].hi=this.value"/>
+      <input value="${g.ctx}" placeholder="Context"    oninput="glossary[${i}].ctx=this.value"/>
+      <button class="iBtn" onclick="glossary.splice(${i},1);renderGloss()">✕</button>
+    </div>`).join('');
+}
+function addGloss() { glossary.push({en:'',hi:'',ctx:''}); renderGloss(); }
+function getGlossaryObj() {
+  const obj = {};
+  glossary.forEach(g => { if(g.en && g.hi) obj[g.en] = g.hi; });
+  return obj;
+}
+
+// ═══════════════════════════════════════════════════
+//  API KEY HANDLING
+// ═══════════════════════════════════════════════════
+let keyDebounce = null;
+function onKeyInput() {
+  const v = document.getElementById('gemini-key').value.trim();
+  geminiKey = v;
+  localStorage.setItem('ts_gemini_key', v);
+  // sync to settings page
+  const sk = document.getElementById('settings-key');
+  if(sk && sk !== document.activeElement) sk.value = v;
+  const dot = document.getElementById('key-dot');
+  dot.className = 'key-dot';
+  clearTimeout(keyDebounce);
+  if (!v) { updateDashStats(); return; }
+  keyDebounce = setTimeout(() => validateKeyLive(v), 700);
+}
+function syncKeyFromSettings() {
+  const v = document.getElementById('settings-key').value.trim();
+  geminiKey = v;
+  localStorage.setItem('ts_gemini_key', v);
+  const kl = document.getElementById('gemini-key');
+  if(kl) kl.value = v;
+  onKeyInput();
+}
+async function validateKeyLive(key) {
+  const dot = document.getElementById('key-dot');
+  if (!key.startsWith('AIza') || key.length < 30) { dot.className='key-dot err'; return; }
+  // Try backend validation first
+  if (backendAlive) {
+    try {
+      const r = await fetch(`${API}/validate-key`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({api_key: key}), signal: AbortSignal.timeout(5000)
+      });
+      dot.className = r.ok ? 'key-dot ok' : 'key-dot err';
+      updateDashStats(); return;
+    } catch {}
+  }
+  // Direct Gemini check
+  try {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({contents:[{parts:[{text:'ok'}]}],generationConfig:{maxOutputTokens:2}}),
+      signal: AbortSignal.timeout(6000)
+    });
+    dot.className = r.ok ? 'key-dot ok' : 'key-dot err';
+  } catch { dot.className = 'key-dot err'; }
+  updateDashStats();
+}
+
+// ═══════════════════════════════════════════════════
+//  LIVE CALL — MIC
+// ═══════════════════════════════════════════════════
+let recognition=null, isRec=false, animId=null, micStream=null;
+let debTimer=null, isTranslating=false, pendingText=null;
+
+function toggleMic() { isRec ? stopRec() : startRec(); }
+async function startRec() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { toast('⚠️ Use Chrome for Speech Recognition.'); return; }
+  try { micStream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch { toast('⚠️ Mic permission denied.'); return; }
+
+  isRec = true;
+  const btn = document.getElementById('mic-btn');
+  btn.textContent = '⏹ Stop'; btn.classList.add('rec');
+  document.getElementById('wdot').className = 'wdot rec';
+  document.getElementById('wlbl').textContent = '🎙️ Listening…';
+  document.getElementById('live-sub').textContent = '🔴 Live — real-time translation active';
+
+  recognition = new SR();
+  recognition.lang            = SPEECH_LANG[document.getElementById('src-lang').value] || 'en-US';
+  recognition.continuous      = true;
+  recognition.interimResults  = true;
+  recognition.maxAlternatives = 1;
+
+  recognition.onresult = (ev) => {
+    let interim='', final='';
+    for (let i=ev.resultIndex;i<ev.results.length;i++) {
+      const t = ev.results[i][0].transcript;
+      ev.results[i].isFinal ? (final+=t) : (interim+=t);
+    }
+    if (final || interim) {
+      document.getElementById('orig-body').innerHTML = final
+        ? `<span>${final}</span>`
+        : `<span style="color:var(--tx2);font-style:italic">${interim}…</span>`;
+    }
+    if (final.trim()) { clearTimeout(debTimer); triggerTrans(final.trim()); }
+    else if (interim.trim().split(' ').length >= 3) {
+      clearTimeout(debTimer);
+      debTimer = setTimeout(() => triggerTrans(interim.trim()), 900);
+    }
+  };
+  recognition.onerror = e => { if(!['no-speech','aborted'].includes(e.error)) toast('Mic: '+e.error); };
+  recognition.onend   = () => { if(isRec) setTimeout(()=>{ try{recognition.start()}catch(e){} },250); };
+  recognition.start();
+  startWave(micStream);
+}
+
+function stopRec() {
+  isRec = false; clearTimeout(debTimer);
+  recognition?.stop();
+  cancelAnimationFrame(animId);
+  micStream?.getTracks().forEach(t=>t.stop()); micStream=null;
+  const btn = document.getElementById('mic-btn');
+  btn.textContent = '🎙️ Start'; btn.classList.remove('rec');
+  document.getElementById('wdot').className = 'wdot';
+  document.getElementById('wlbl').textContent = 'Idle — session stopped';
+  document.getElementById('live-sub').textContent = 'Session ended';
+  const cv = document.getElementById('wave-canvas');
+  cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
+}
+
+// ═══════════════════════════════════════════════════
+//  WAVEFORM
+// ═══════════════════════════════════════════════════
+function startWave(stream) {
+  const cv = document.getElementById('wave-canvas');
+  const ctx = cv.getContext('2d');
+  const aC = new (window.AudioContext||window.webkitAudioContext)();
+  const analyser = aC.createAnalyser();
+  analyser.fftSize = 512; analyser.smoothingTimeConstant = 0.8;
+  aC.createMediaStreamSource(stream).connect(analyser);
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  (function draw(){
+    animId = requestAnimationFrame(draw);
+    cv.width = cv.offsetWidth;
+    analyser.getByteFrequencyData(data);
+    ctx.clearRect(0,0,cv.width,cv.height);
+    const bw = (cv.width/data.length)*2.5;
+    let x=0;
+    data.forEach(v=>{
+      const h=(v/255)*cv.height;
+      ctx.fillStyle=`rgba(0,229,160,${.2+(v/255)*.8})`;
+      ctx.fillRect(x,(cv.height-h)/2,Math.max(bw-1,1),h);
+      x+=bw;
+    });
+  })();
+}
+
+// ═══════════════════════════════════════════════════
+//  TRANSLATION ENGINE
+// ═══════════════════════════════════════════════════
+async function triggerTrans(text) {
+  if (isTranslating) { pendingText=text; return; }
+  await runTrans(text);
+  if (pendingText) { const n=pendingText; pendingText=null; await runTrans(n); }
+}
+
+async function runTrans(text) {
+  isTranslating = true;
+  document.getElementById('wlbl').textContent = '⚡ Translating…';
+  document.getElementById('tran-body').innerHTML = '<span class="ph">⏳ Translating...</span>';
+
+  const src = document.getElementById('src-lang').value;
+  const tgt = document.getElementById('tgt-lang').value;
+  let result=null, engine='';
+
+  // 1️⃣ Python backend (best — Gemini via server)
+  if (backendAlive && document.getElementById('tog-backend')?.classList.contains('on')) {
+    try {
+      const r = await fetch(`${API}/translate`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({text, source_lang:src, target_lang:tgt, glossary:getGlossaryObj()}),
+        signal: AbortSignal.timeout(6000)
+      });
+      if (r.ok) { const d=await r.json(); result=d.translated_text; engine='gemini'; }
+    } catch {}
+  }
+
+  // 2️⃣ Gemini API direct (key in browser)
+  if (!result && geminiKey) {
+    try { result = await callGemini(text, src, tgt); engine='gemini'; } catch(e) { console.warn('Gemini direct:',e.message); }
+  }
+
+  // 3️⃣ Google Translate free fallback
+  if (!result) {
+    try { result = await callGoogle(text, src, tgt); engine='google'; } catch(e) { console.warn('Google:',e.message); }
+  }
+
+  if (result) {
+    document.getElementById('tran-body').innerHTML = `<span>${result}</span>`;
+    showEngBadge(engine);
+    addTranscriptEntry(text, result, src, tgt);
+    translateCount++;
+    updateDashStats();
+    if (document.getElementById('tog-speak')?.classList.contains('on')) speakOut(result, tgt);
+  } else {
+    document.getElementById('tran-body').innerHTML = '<span class="ph" style="color:var(--red)">⚠️ Translation failed</span>';
+  }
+  document.getElementById('wlbl').textContent = isRec ? '🎙️ Listening…' : 'Idle';
+  isTranslating = false;
+}
+
+async function callGemini(text, src, tgt) {
+  const key = geminiKey;
+  const sn = LANG_NAMES[src]||src, tn = LANG_NAMES[tgt]||tgt;
+  const glossObj = getGlossaryObj();
+  const gText = Object.keys(glossObj).length
+    ? '\nGlossary:\n' + Object.entries(glossObj).map(([k,v])=>`  ${k} → ${v}`).join('\n') : '';
+  const prompt = `Translate this ${sn} text to ${tn}. Return ONLY the translation, nothing else.${gText}\n\nText: ${text}`;
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.2,maxOutputTokens:512}}),
+    signal: AbortSignal.timeout(9000)
+  });
+  if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${r.status}`); }
+  const d = await r.json();
+  const out = d?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  if (!out) throw new Error('Empty Gemini response');
+  return out;
+}
+
+async function callGoogle(text, src, tgt) {
+  const sl=G_CODES[src]||src, tl=G_CODES[tgt]||tgt;
+  const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text)}`,
+    {signal: AbortSignal.timeout(7000)});
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d = await r.json();
+  return d[0].map(c=>c[0]).filter(Boolean).join('');
+}
+
+function showEngBadge(engine) {
+  const b = document.getElementById('eng-badge');
+  b.style.display='inline-flex';
+  b.className=`eng ${engine}`;
+  b.textContent = engine==='gemini' ? '✨ Gemini' : '🌐 Google';
+}
+
+// Manual translate
+async function doManual() {
+  const el=document.getElementById('manual-inp'), t=el.value.trim();
+  if (!t) return; el.value='';
+  document.getElementById('orig-body').innerHTML=`<span>${t}</span>`;
+  await runTrans(t);
+}
+
+// ═══════════════════════════════════════════════════
+//  TRANSCRIPT
+// ═══════════════════════════════════════════════════
+let transcriptEntries = [];
+function addTranscriptEntry(orig, tran, src, tgt) {
+  const el=document.getElementById('transcript');
+  el.querySelector('.t-empty')?.remove();
+  const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const entry={orig,tran,src,tgt,time};
+  transcriptEntries.push(entry);
+
+  const d=document.createElement('div');
+  d.className='te orig';
+  d.innerHTML=`<div class="te-lbl">🎤 ${LANG_NAMES[src]||src}</div><div class="te-txt">${orig}</div>`;
+  el.appendChild(d);
+
+  const d2=document.createElement('div');
+  d2.className='te tran';
+  d2.innerHTML=`<div class="te-lbl">🌐 ${LANG_NAMES[tgt]||tgt}</div><div class="te-txt">${tran}</div><div class="te-time">${time}</div>`;
+  el.appendChild(d2);
+  el.scrollTop=el.scrollHeight;
+
+  // Update count
+  document.getElementById('tc-count').textContent=`(${transcriptEntries.length})`;
+  // Add to history
+  addToHistory(orig, tran, src, tgt, time);
+}
+
+// History
+let historyEntries = [];
+function addToHistory(orig, tran, src, tgt, time) {
+  historyEntries.unshift({orig,tran,src,tgt,time,date:new Date().toLocaleDateString()});
+  renderHistory();
+}
+function renderHistory() {
+  const el=document.getElementById('history-body');
+  if (!historyEntries.length) { el.innerHTML='<div style="color:var(--tx3);font-size:13px;padding:20px 0">No history yet.</div>'; return; }
+  el.innerHTML=`<div class="call-list">`+historyEntries.slice(0,50).map(e=>`
+    <div class="call-card" style="cursor:default">
+      <div>
+        <div class="cc-name" style="font-size:12px;font-weight:400;color:var(--tx2)">${e.orig}</div>
+        <div class="cc-meta" style="font-size:13px;font-weight:600;color:var(--tx);margin-top:2px">${e.tran}</div>
+        <div class="cc-meta">${LANG_NAMES[e.src]||e.src} → ${LANG_NAMES[e.tgt]||e.tgt} · ${e.time}</div>
+      </div>
+    </div>`).join('')+`</div>`;
+}
+function clearHistory() { historyEntries=[]; transcriptEntries=[]; renderHistory(); document.getElementById('tc-count').textContent='(0)'; }
+
+// ═══════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════
+function swapLangs() {
+  const s=document.getElementById('src-lang'),t=document.getElementById('tgt-lang');
+  [s.value,t.value]=[t.value,s.value];
+}
+function clrPanel(id,ph) { document.getElementById(id).innerHTML=`<span class="ph">${ph}</span>`; }
+function copyOut() {
+  const t=document.getElementById('tran-body').innerText;
+  if(t.includes('appears here')||t.includes('Translating')){toast('Nothing to copy.');return;}
+  navigator.clipboard.writeText(t).then(()=>toast('✅ Copied!'));
+}
+function speakOut(text, lang) {
+  const txt = text || document.getElementById('tran-body').innerText;
+  const lg  = lang || document.getElementById('tgt-lang').value;
+  if (!txt || txt.includes('appears here')) { toast('Nothing to speak.'); return; }
+  const u=new SpeechSynthesisUtterance(txt);
+  u.lang=SPEECH_LANG[lg]||'hi-IN'; u.rate=0.95;
+  speechSynthesis.speak(u);
+}
+function toast(msg) {
+  const e=document.createElement('div'); e.className='toast'; e.textContent=msg;
+  document.body.appendChild(e); setTimeout(()=>e.remove(),3000);
+}
+
+// ═══════════════════════════════════════════════════
+//  BACKEND CHECK
+// ═══════════════════════════════════════════════════
+async function checkBackend() {
+  const setB=(id,cls,txt)=>{ const e=document.getElementById(id); if(e){e.className=`badge ${cls}`;e.textContent=txt;} };
+  setB('badge-api','warn','Checking…');
+
+  try {
+    const r=await fetch(`${API}/health`,{signal:AbortSignal.timeout(3000)});
+    if (r.ok) {
+      const d=await r.json();
+      backendAlive=true;
+      setB('badge-api','ok','Connected');
+      setB('badge-key', d.gemini_configured?'ok':'warn', d.gemini_configured?'Configured':'Not Set');
+      // Sidebar indicator
+      document.getElementById('sb-cdot').className='sb-conn-dot on';
+      document.getElementById('sb-ctext').textContent='Backend connected';
+      // Platforms page
+      const ps=document.getElementById('backend-plat-status');
+      if(ps){ps.className='plat-status ready';ps.textContent='✅ Running on :8000';}
+      updateDashStats();
+    } else throw 0;
+  } catch {
+    backendAlive=false;
+    setB('badge-api','err','Offline');
+    document.getElementById('sb-cdot').className='sb-conn-dot err';
+    document.getElementById('sb-ctext').textContent='Backend offline';
+    const ps=document.getElementById('backend-plat-status');
+    if(ps){ps.className='plat-status soon';ps.textContent='⚪ Not running';}
+  }
+
+  // WebSocket
+  try {
+    const ws=new WebSocket('ws://localhost:8000/ws');
+    ws.onopen=()=>{ setB('badge-ws','ok','Connected'); ws.close(); };
+    ws.onerror=()=>setB('badge-ws','err','Disconnected');
+  } catch { setB('badge-ws','err','Disconnected'); }
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+(function init(){
+  renderDash();
+  renderGloss();
+  renderHistory();
+  // Restore saved key
+  if (geminiKey) {
+    const k=document.getElementById('gemini-key');
+    const sk=document.getElementById('settings-key');
+    if(k) k.value=geminiKey;
+    if(sk) sk.value=geminiKey;
+    validateKeyLive(geminiKey);
+  }
+  checkBackend();
+  // Re-check backend every 30s
+  setInterval(checkBackend, 30000);
+  updateDashStats();
+})();
+</script>
+</body>
+</html>

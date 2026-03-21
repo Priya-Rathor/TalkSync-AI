@@ -271,11 +271,13 @@ async def translate_endpoint(req: TranslateRequest):
 
 
 @app.get("/transcript")
+
 async def get_transcript():
     return {"entries": session_transcript, "count": len(session_transcript)}
 
 
 @app.delete("/transcript")
+
 async def clear_transcript():
     session_transcript.clear()
     return {"message": "Transcript cleared"}

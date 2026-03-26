@@ -272,6 +272,8 @@ async def translate_endpoint(req: TranslateRequest):
 
 @app.get("/transcript")
 
+
+
 async def get_transcript():
     return {"entries": session_transcript, "count": len(session_transcript)}
 
